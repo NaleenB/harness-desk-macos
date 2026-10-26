@@ -224,7 +224,7 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     private func updatePricingStatus() {
         guard pricingLabel != nil, pricingDot != nil else { return }
         let now = Date()
-        let peak = isPeakPricing(at: now)
+        let peak = Pricing.isPeak(at: now)
         pricingLabel.stringValue = peak ? "Peak" : "Normal"
         pricingDot.layer?.backgroundColor = (peak ? NSColor.systemOrange : NSColor.systemGreen).cgColor
 
@@ -243,19 +243,6 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         }
         pricingLabel.toolTip = tooltip
         pricingAccessory?.view.toolTip = tooltip
-    }
-
-    /// Peak windows are defined in UTC; the weekday boundary is UTC too.
-    private func isPeakPricing(at date: Date) -> Bool {
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
-        let parts = calendar.dateComponents([.weekday, .hour, .minute], from: date)
-        guard let weekday = parts.weekday, let hour = parts.hour, let minute = parts.minute else {
-            return false
-        }
-        let minutes = hour * 60 + minute
-        let isWeekday = (2...6).contains(weekday) // Monday–Friday
-        return isWeekday && ((60..<240).contains(minutes) || (360..<600).contains(minutes))
     }
 
     private func buildMenu() {
@@ -631,11 +618,8 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     }
 
     private func savedTokenURL(port: Int) -> URL? {
-        guard let text = try? String(contentsOf: urlFile, encoding: .utf8),
-              let url = URL(string: text.trimmingCharacters(in: .whitespacesAndNewlines)),
-              url.port == port,
-              url.host == "127.0.0.1" || url.host == "localhost" else { return nil }
-        return url
+        guard let text = try? String(contentsOf: urlFile, encoding: .utf8) else { return nil }
+        return TokenURL.parse(text, port: port)
     }
 
     /// Called on the main queue once a server is reachable; starts the health

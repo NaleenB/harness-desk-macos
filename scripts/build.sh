@@ -31,7 +31,7 @@ mkdir -p "$BUILD_DIR"
 echo "Compiling $APP_NAME…"
 swiftc -O -swift-version 5 -target arm64-apple-macos13.0 \
   -framework Cocoa -framework WebKit \
-  -o "$BUILD_DIR/$APP_NAME" "$ROOT/Sources/main.swift"
+  -o "$BUILD_DIR/$APP_NAME" "$ROOT/Sources/main.swift" "$ROOT/Sources/Pricing.swift" "$ROOT/Sources/TokenURL.swift"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

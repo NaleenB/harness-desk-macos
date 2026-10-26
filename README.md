@@ -63,7 +63,8 @@ open "/Applications/HarnessDesk.app"
 ```
 
 `--install` is optional; without it the app is built at
-`build/HarnessDesk.app` and not copied anywhere.
+`build/HarnessDesk.app` and not copied anywhere. The pure pricing-rule tests run
+with `./scripts/test.sh`.
 
 The build script uses `swiftc`, writes the bundle, injects the app identity into
 `Resources/Info.plist.in`, ad-hoc signs the result, and copies it to
