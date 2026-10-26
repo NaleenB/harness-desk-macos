@@ -103,7 +103,8 @@ Environment variables read by the app:
 | `DSH_LAUNCHER_INSPECTABLE` | unset | Set to `1` to make the WebView inspectable from Safari |
 
 Build-time variables: `APP_NAME`, `DISPLAY_NAME`, `BUNDLE_ID`, `VERSION`,
-`BUILD_NUMBER`, `INSTALL_DIR`.
+`BUILD_NUMBER`, `INSTALL_DIR`, `ICON_PATH` (an optional `.icns` for personal
+builds; the repository default is a neutral icon).
 
 ## Security
 

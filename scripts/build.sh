@@ -17,6 +17,7 @@ VERSION="${VERSION:-0.1.1}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 INSTALL_DIR="${INSTALL_DIR:-/Applications}"
 BUILD_DIR="$ROOT/build"
+ICON_PATH="${ICON_PATH:-$ROOT/Resources/AppIcon.icns}"
 APP="$BUILD_DIR/$APP_NAME.app"
 DO_INSTALL=0
 [[ "${1:-}" == "--install" ]] && DO_INSTALL=1
@@ -45,8 +46,8 @@ sed \
   -e "s|__BUILD__|$BUILD_NUMBER|g" \
   "$ROOT/Resources/Info.plist.in" > "$APP/Contents/Info.plist"
 
-if [[ -f "$ROOT/Resources/AppIcon.icns" ]]; then
-  cp "$ROOT/Resources/AppIcon.icns" "$APP/Contents/Resources/AppIcon.icns"
+if [[ -f "$ICON_PATH" ]]; then
+  cp "$ICON_PATH" "$APP/Contents/Resources/AppIcon.icns"
 else
   plutil -remove CFBundleIconFile "$APP/Contents/Info.plist" 2>/dev/null || true
 fi

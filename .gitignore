@@ -11,3 +11,4 @@ Resources/AppIcon.iconset/
 
 # Logs
 *.log
+Resources/*.personal.icns
