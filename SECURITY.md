@@ -4,7 +4,9 @@
 
 Please use GitHub's private vulnerability reporting for this repository
 (Security → Report a vulnerability). Do not open a public issue that contains
-tokens, API keys, session data, or a working exploit.
+tokens, API keys, session data, or a working exploit. If private reporting is
+not enabled, open a minimal issue asking for a private channel; do not include
+the details there.
 
 This launcher starts a local `dsh` server and reads `~/.dsh`; bugs that let a
 remote page reach those privileges are in scope. Bugs in DeepSeek Harness
