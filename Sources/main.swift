@@ -24,6 +24,10 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     private var gotURLForAttempt = false
     private var lastServerTail = ""
     private var checkAttachedAuth = false
+    private var pricingLabel: NSTextField!
+    private var pricingDot: NSView!
+    private var pricingAccessory: NSTitlebarAccessoryViewController?
+    private var pricingTimer: Timer?
 
     private let fm = FileManager.default
 
@@ -112,6 +116,8 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         isQuitting = true
         healthTimer?.invalidate()
         watchdog?.cancel()
+        pricingTimer?.invalidate()
+        NotificationCenter.default.removeObserver(self)
         if ownsServer, let p = server, p.isRunning {
             p.terminate()
             // Give the harness a moment to shut down cleanly.
@@ -136,6 +142,7 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         window.delegate = self
         window.isReleasedWhenClosed = false
         window.minSize = NSSize(width: 720, height: 520)
+        buildPricingAccessory()
 
         let host = NSView(frame: window.contentLayoutRect)
         host.autoresizingMask = [.width, .height]
@@ -165,6 +172,90 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         ])
 
         window.makeKeyAndOrderFront(nil)
+    }
+
+    // MARK: - Pricing indicator
+
+    /// Subtle title-bar readout of the official DeepSeek API rate window.
+    /// Peak is 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday.
+    private func buildPricingAccessory() {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 96, height: 22))
+        let dot = NSView(frame: NSRect(x: 2, y: 8, width: 6, height: 6))
+        dot.wantsLayer = true
+        dot.layer?.cornerRadius = 3
+        dot.layer?.backgroundColor = NSColor.systemGreen.cgColor
+
+        let label = NSTextField(labelWithString: "Normal")
+        label.font = .systemFont(ofSize: 11, weight: .medium)
+        label.textColor = .secondaryLabelColor
+        label.frame = NSRect(x: 12, y: 2, width: 80, height: 18)
+
+        container.addSubview(dot)
+        container.addSubview(label)
+
+        let accessory = NSTitlebarAccessoryViewController()
+        accessory.view = container
+        accessory.layoutAttribute = .right
+        window.addTitlebarAccessoryViewController(accessory)
+
+        pricingAccessory = accessory
+        pricingDot = dot
+        pricingLabel = label
+
+        updatePricingStatus()
+        let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
+            self?.updatePricingStatus()
+        }
+        RunLoop.main.add(timer, forMode: .common)
+        pricingTimer = timer
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(systemTimeZoneChanged),
+            name: Notification.Name.NSSystemTimeZoneDidChange,
+            object: nil
+        )
+    }
+
+    @objc private func systemTimeZoneChanged() {
+        updatePricingStatus()
+    }
+
+    private func updatePricingStatus() {
+        guard pricingLabel != nil, pricingDot != nil else { return }
+        let now = Date()
+        let peak = isPeakPricing(at: now)
+        pricingLabel.stringValue = peak ? "Peak" : "Normal"
+        pricingDot.layer?.backgroundColor = (peak ? NSColor.systemOrange : NSColor.systemGreen).cgColor
+
+        let local = DateFormatter()
+        local.timeZone = .current
+        local.dateStyle = .none
+        local.timeStyle = .short
+        let localTime = local.string(from: now)
+        let zone = TimeZone.current.abbreviation() ?? TimeZone.current.identifier
+        let schedule = "Peak: 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday."
+        let tooltip: String
+        if peak {
+            tooltip = "DeepSeek API pricing: peak right now.\n\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
+        } else {
+            tooltip = "DeepSeek API pricing: normal (off-peak) right now.\n\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
+        }
+        pricingLabel.toolTip = tooltip
+        pricingAccessory?.view.toolTip = tooltip
+    }
+
+    /// Peak windows are defined in UTC; the weekday boundary is UTC too.
+    private func isPeakPricing(at date: Date) -> Bool {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let parts = calendar.dateComponents([.weekday, .hour, .minute], from: date)
+        guard let weekday = parts.weekday, let hour = parts.hour, let minute = parts.minute else {
+            return false
+        }
+        let minutes = hour * 60 + minute
+        let isWeekday = (2...6).contains(weekday) // Monday–Friday
+        return isWeekday && ((60..<240).contains(minutes) || (360..<600).contains(minutes))
     }
 
     private func buildMenu() {

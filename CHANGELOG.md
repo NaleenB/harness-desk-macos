@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.2 — 2026-10-26
+
+- Add a subtle title-bar pricing indicator (Peak/Normal) for the official
+  DeepSeek API. It follows the UTC weekday windows and the system timezone;
+  hover for the schedule and local time. Chinese public holidays are not included.
+
 ## 0.1.1 — 2026-10-26
 
 - Fix attach detection for GUI launches: probe the harness with a raw loopback

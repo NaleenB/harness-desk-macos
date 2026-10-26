@@ -37,6 +37,8 @@ small and does only that.
   capture, tokenised "Open in Browser", and ⌘W.
 - Stores the launch token and launcher log with `0600` permissions and redacts
   the token from logs.
+- A subtle title-bar pricing indicator (Peak/Normal) based on the UTC weekday
+  windows and the current system timezone; hover for the schedule and local time.
 
 ## Requirements
 
@@ -134,6 +136,8 @@ the hardened runtime, and notarization. See [SECURITY.md](SECURITY.md).
   running. Stop it with `pkill -f "dsh web"` if needed.
 - Rebuilding changes the ad-hoc signature; macOS may ask for microphone access
   again.
+- The pricing indicator follows the weekday UTC windows only; Chinese public
+  holidays are not included.
 - Account profile/balance calls can log `403` from `platform.deepseek.com`.
   That endpoint is behind AWS WAF; the browser's `aws-waf-token` cookie is not
   sent by the host process. The model path through the API key is unaffected.
