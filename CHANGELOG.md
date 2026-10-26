@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.1 — 2026-10-26
+
+- Fix attach detection for GUI launches: probe the harness with a raw loopback
+  HTTP request instead of `URLSession`, which can be blocked by macOS local
+  network policy. The saved token is now validated by the WebView itself.
+
 ## 0.1.0 — 2026-10-26
 
 - Initial native macOS launcher for DeepSeek Harness.

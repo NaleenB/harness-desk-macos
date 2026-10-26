@@ -471,24 +471,46 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     }
 
     /// DSH answers an unauthenticated root request with this exact 401 body.
+    /// Use a raw loopback socket: URLSession can be blocked by the local-network
+    /// policy for a GUI-launched app, while WebKit and BSD sockets are not.
     private func isDSHServer(port: Int) -> Bool {
-        guard let url = URL(string: "http://127.0.0.1:\(port)/") else { return false }
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 2
-        let sem = DispatchSemaphore(value: 0)
-        var found = false
-        let task = URLSession.shared.dataTask(with: request) { data, response, _ in
-            defer { sem.signal() }
-            guard let http = response as? HTTPURLResponse, http.statusCode == 401,
-                  let data, let body = String(data: data, encoding: .utf8) else { return }
-            found = body.contains("dsh web authentication required")
+        guard let response = rawHTTP(port: port) else { return false }
+        return response.contains(" 401 ") && response.contains("dsh web authentication required")
+    }
+
+    /// Minimal HTTP/1.1 GET against 127.0.0.1. Returns the response text.
+    private func rawHTTP(port: Int) -> String? {
+        let fd = socket(AF_INET, SOCK_STREAM, 0)
+        guard fd >= 0 else { return nil }
+        defer { close(fd) }
+
+        var tv = timeval(tv_sec: 2, tv_usec: 0)
+        setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &tv, socklen_t(MemoryLayout<timeval>.size))
+
+        var addr = sockaddr_in()
+        addr.sin_family = sa_family_t(AF_INET)
+        addr.sin_port = in_port_t(UInt16(port).bigEndian)
+        addr.sin_addr.s_addr = inet_addr("127.0.0.1")
+        let connected = withUnsafePointer(to: &addr) { ptr in
+            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) {
+                connect(fd, $0, socklen_t(MemoryLayout<sockaddr_in>.size))
+            }
         }
-        task.resume()
-        if sem.wait(timeout: .now() + 3) == .timedOut {
-            task.cancel()
-            return false
+        guard connected == 0 else { return nil }
+
+        let request = "GET / HTTP/1.1\r\nHost: 127.0.0.1:\(port)\r\nConnection: close\r\n\r\n"
+        let sent = request.withCString { send(fd, $0, strlen($0), 0) }
+        guard sent > 0 else { return nil }
+
+        var data = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while data.count < 16_384 {
+            let n = buffer.withUnsafeMutableBytes { recv(fd, $0.baseAddress, $0.count, 0) }
+            if n <= 0 { break }
+            data.append(buffer, count: n)
         }
-        return found
+        return String(data: data, encoding: .utf8)
     }
 
     /// Load an already-running server. The launch token is per-process, so the
@@ -502,11 +524,15 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         log("attaching to existing harness on port \(port)")
         status("Attached to the running harness on port \(port)…")
 
-        if let token = savedTokenURL(port: port), validateToken(token) {
-            log("saved token is valid; attaching with it")
+        // The WebView is the browser: let it follow the 303 and set the cookie.
+        // If the saved token is stale it renders the 401 body, which didFinish
+        // turns into an actionable alert.
+        if let token = savedTokenURL(port: port) {
+            log("saved token found; attaching with it")
+            checkAttachedAuth = true
             present(token.absoluteString)
         } else {
-            log("no valid saved token; trying the existing WebView cookie")
+            log("no saved token; trying the existing WebView cookie")
             checkAttachedAuth = true
             present("http://127.0.0.1:\(port)/")
         }
@@ -519,26 +545,6 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
               url.port == port,
               url.host == "127.0.0.1" || url.host == "localhost" else { return nil }
         return url
-    }
-
-    /// Follow the token redirect with a throwaway cookie jar: 200 means the
-    /// token minted a cookie, 401 means it is stale. No WebView state involved.
-    private func validateToken(_ url: URL) -> Bool {
-        let config = URLSessionConfiguration.ephemeral
-        config.timeoutIntervalForRequest = 3
-        let session = URLSession(configuration: config)
-        var request = URLRequest(url: url)
-        request.timeoutInterval = 3
-        let sem = DispatchSemaphore(value: 0)
-        var ok = false
-        let task = session.dataTask(with: request) { _, response, _ in
-            defer { sem.signal() }
-            if let http = response as? HTTPURLResponse, http.statusCode == 200 { ok = true }
-        }
-        task.resume()
-        if sem.wait(timeout: .now() + 4) == .timedOut { task.cancel() }
-        session.invalidateAndCancel()
-        return ok
     }
 
     /// Called on the main queue once a server is reachable; starts the health
