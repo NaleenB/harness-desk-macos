@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.3 — 2026-10-26
+
+- The pricing tooltip now counts down to the end of the current period, e.g.
+  "Peak period ends in 2h 31m". Weekends show days as well ("2d 13h 5m").
+
 ## 0.1.2 — 2026-10-26
 
 - Add a subtle title-bar pricing indicator (Peak/Normal) for the official

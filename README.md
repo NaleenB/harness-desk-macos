@@ -38,7 +38,8 @@ small and does only that.
 - Stores the launch token and launcher log with `0600` permissions and redacts
   the token from logs.
 - A subtle title-bar pricing indicator (Peak/Normal) based on the UTC weekday
-  windows and the current system timezone; hover for the schedule and local time.
+  windows and the current system timezone; hover for the schedule, local time,
+  and a countdown to the end of the current period.
 
 ## Requirements
 

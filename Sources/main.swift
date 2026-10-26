@@ -235,11 +235,16 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         let localTime = local.string(from: now)
         let zone = TimeZone.current.abbreviation() ?? TimeZone.current.identifier
         let schedule = "Peak: 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday."
+        var remaining = ""
+        if let end = Pricing.nextTransition(after: now) {
+            let period = peak ? "Peak" : "Normal"
+            remaining = "\(period) period ends in \(Pricing.remainingText(from: now, to: end)).\n"
+        }
         let tooltip: String
         if peak {
-            tooltip = "DeepSeek API pricing: peak right now.\n\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
+            tooltip = "DeepSeek API pricing: peak right now.\n\(remaining)\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
         } else {
-            tooltip = "DeepSeek API pricing: normal (off-peak) right now.\n\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
+            tooltip = "DeepSeek API pricing: normal (off-peak) right now.\n\(remaining)\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
         }
         pricingLabel.toolTip = tooltip
         pricingAccessory?.view.toolTip = tooltip
