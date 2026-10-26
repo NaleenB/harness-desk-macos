@@ -53,7 +53,7 @@ small and does only that.
 
 ```sh
 git clone <this-repository>
-cd harness-desk
+cd harness-desk-macos
 ./scripts/build.sh --install
 open "/Applications/HarnessDesk.app"
 ```
