@@ -1,0 +1,21 @@
+name: build
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build
+        run: ./scripts/build.sh
+
+      - name: Verify bundle
+        run: |
+          test -x build/HarnessDesk.app/Contents/MacOS/HarnessDesk
+          plutil -lint build/HarnessDesk.app/Contents/Info.plist
+          codesign --verify --deep --strict build/HarnessDesk.app
+          vtool -show-build build/HarnessDesk.app/Contents/MacOS/HarnessDesk | grep -q "minos 13.0"

@@ -1,0 +1,13 @@
+# Build output
+build/
+
+# macOS
+.DS_Store
+xcuserdata/
+*.xcuserstate
+
+# Generated icon intermediates
+Resources/AppIcon.iconset/
+
+# Logs
+*.log
