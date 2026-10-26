@@ -1,5 +1,7 @@
 # Harness Desk
 
+[![build](https://github.com/NaleenB/harness-desk-macos/actions/workflows/ci.yml/badge.svg)](https://github.com/NaleenB/harness-desk-macos/actions/workflows/ci.yml)
+
 A small, native macOS launcher for [DeepSeek Harness](https://deepseek-harness.github.io/deepseek-harness/).
 
 It is a single Swift file wrapped around `WKWebView`. It starts the local
@@ -52,7 +54,7 @@ small and does only that.
 ## Build and run
 
 ```sh
-git clone <this-repository>
+git clone https://github.com/NaleenB/harness-desk-macos.git
 cd harness-desk-macos
 ./scripts/build.sh --install
 open "/Applications/HarnessDesk.app"
