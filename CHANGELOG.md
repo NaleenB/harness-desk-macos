@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.4 — 2026-10-27
+
+- Fix the pricing tooltip appearing only over part of the badge, or being
+  dismissed by the 30-second refresh. The dot and text are now one view with a
+  single, stable tooltip registration, and VoiceOver reads the same text.
+
 ## 0.1.3 — 2026-10-26
 
 - The pricing tooltip now counts down to the end of the current period, e.g.

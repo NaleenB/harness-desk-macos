@@ -24,9 +24,7 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     private var gotURLForAttempt = false
     private var lastServerTail = ""
     private var checkAttachedAuth = false
-    private var pricingLabel: NSTextField!
-    private var pricingDot: NSView!
-    private var pricingAccessory: NSTitlebarAccessoryViewController?
+    private var pricingBadge: PricingBadgeView?
     private var pricingTimer: Timer?
 
     private let fm = FileManager.default
@@ -179,28 +177,13 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     /// Subtle title-bar readout of the official DeepSeek API rate window.
     /// Peak is 01:00–04:00 and 06:00–10:00 UTC, Monday–Friday.
     private func buildPricingAccessory() {
-        let container = NSView(frame: NSRect(x: 0, y: 0, width: 96, height: 22))
-        let dot = NSView(frame: NSRect(x: 2, y: 8, width: 6, height: 6))
-        dot.wantsLayer = true
-        dot.layer?.cornerRadius = 3
-        dot.layer?.backgroundColor = NSColor.systemGreen.cgColor
-
-        let label = NSTextField(labelWithString: "Normal")
-        label.font = .systemFont(ofSize: 11, weight: .medium)
-        label.textColor = .secondaryLabelColor
-        label.frame = NSRect(x: 12, y: 2, width: 80, height: 18)
-
-        container.addSubview(dot)
-        container.addSubview(label)
-
+        let badge = PricingBadgeView(frame: NSRect(x: 0, y: 0, width: 96, height: 22))
         let accessory = NSTitlebarAccessoryViewController()
-        accessory.view = container
+        accessory.view = badge
         accessory.layoutAttribute = .right
         window.addTitlebarAccessoryViewController(accessory)
 
-        pricingAccessory = accessory
-        pricingDot = dot
-        pricingLabel = label
+        pricingBadge = badge
 
         updatePricingStatus()
         let timer = Timer(timeInterval: 30, repeats: true) { [weak self] _ in
@@ -222,11 +205,11 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     }
 
     private func updatePricingStatus() {
-        guard pricingLabel != nil, pricingDot != nil else { return }
+        guard let badge = pricingBadge else { return }
         let now = Date()
         let peak = Pricing.isPeak(at: now)
-        pricingLabel.stringValue = peak ? "Peak" : "Normal"
-        pricingDot.layer?.backgroundColor = (peak ? NSColor.systemOrange : NSColor.systemGreen).cgColor
+        badge.isPeak = peak
+        badge.statusText = peak ? "Peak" : "Normal"
 
         let local = DateFormatter()
         local.timeZone = .current
@@ -246,8 +229,9 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         } else {
             tooltip = "DeepSeek API pricing: normal (off-peak) right now.\n\(remaining)\(schedule)\nLocal time: \(localTime) \(zone).\nChinese public holidays are not included."
         }
-        pricingLabel.toolTip = tooltip
-        pricingAccessory?.view.toolTip = tooltip
+        // A dynamic tooltip owner reads this on hover, so the tooltip is
+        // registered once and never torn down by the 30-second refresh.
+        badge.tooltipText = tooltip
     }
 
     private func buildMenu() {
@@ -885,6 +869,91 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         return rc == 0
     }
 
+}
+
+/// The title-bar badge: dot plus Peak/Normal text, drawn by a single view.
+///
+/// It is one view on purpose. With a dot subview and a label subview, hovering
+/// the dot hit a view with no tooltip and showed nothing, and re-assigning
+/// `toolTip` every 30 seconds could dismiss a tooltip that was about to appear.
+/// Here the whole badge is one tooltip rect, owned by a dynamic owner, so the
+/// text is always current and the registration never churns.
+final class PricingBadgeView: NSView {
+    var isPeak = false {
+        didSet {
+            needsDisplay = true
+            updateAccessibility()
+        }
+    }
+
+    var statusText = "Normal" {
+        didSet {
+            needsDisplay = true
+            updateAccessibility()
+        }
+    }
+
+    var tooltipText = "" {
+        didSet { updateAccessibility() }
+    }
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+        setAccessibilityElement(true)
+        setAccessibilityRole(.staticText)
+        updateAccessibility()
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func draw(_ dirtyRect: NSRect) {
+        let color = isPeak ? NSColor.systemOrange : NSColor.systemGreen
+        color.setFill()
+        NSBezierPath(ovalIn: NSRect(x: 2, y: bounds.midY - 3, width: 6, height: 6)).fill()
+
+        let attributes: [NSAttributedString.Key: Any] = [
+            .font: NSFont.systemFont(ofSize: 11, weight: .medium),
+            .foregroundColor: NSColor.secondaryLabelColor,
+        ]
+        let text = statusText as NSString
+        let size = text.size(withAttributes: attributes)
+        text.draw(
+            at: NSPoint(x: 12, y: (bounds.height - size.height) / 2),
+            withAttributes: attributes
+        )
+    }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        registerToolTip()
+    }
+
+    override func setFrameSize(_ newSize: NSSize) {
+        super.setFrameSize(newSize)
+        registerToolTip()
+    }
+
+    private func registerToolTip() {
+        removeAllToolTips()
+        guard window != nil else { return }
+        _ = addToolTip(bounds, owner: self, userData: nil)
+    }
+
+    private func updateAccessibility() {
+        setAccessibilityLabel("DeepSeek API pricing: \(statusText)")
+        setAccessibilityHelp(tooltipText)
+    }
+
+    @objc func view(
+        _ view: NSView,
+        stringForToolTip tag: NSView.ToolTipTag,
+        point: NSPoint,
+        userData data: UnsafeMutableRawPointer?
+    ) -> String {
+        tooltipText
+    }
 }
 
 let app = NSApplication.shared
