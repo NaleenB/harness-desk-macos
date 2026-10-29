@@ -35,6 +35,8 @@ small and does only that.
   the same window with the new token.
 - Handles the WebKit details the UI needs: OAuth/sign-in popups, microphone
   capture, tokenised "Open in Browser", and ⌘W.
+- Closing the window minimises it to the Dock rather than hiding it: the
+  harness keeps running, but the window never disappears without a trace.
 - Stores the launch token and launcher log with `0600` permissions and redacts
   the token from logs.
 - A subtle title-bar pricing indicator (Peak/Normal) based on the UTC weekday

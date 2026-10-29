@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.6 — 2026-10-29
+
+- Closing the window (⌘W, the red button, or Window ▸ Close) now minimises it
+  instead of hiding it. The harness still keeps running, but the window stays
+  visible in the Dock, so closing no longer looks like a crash. Close and
+  reopen events are written to `~/.dsh/logs/web-launcher.log` for diagnosis.
+
 ## 0.1.5 — 2026-10-29
 
 - Add an About window (App menu → About Harness Desk, or Check for Updates…).

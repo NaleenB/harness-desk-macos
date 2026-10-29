@@ -99,9 +99,16 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     func applicationShouldTerminateAfterLastWindowClosed(_ app: NSApplication) -> Bool { false }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
-        // Only the main window hides; sign-in popups close for real.
+        // Only the main window is special; sign-in popups close for real.
         guard sender === window else { return true }
-        sender.orderOut(nil)
+        // Keeping the harness alive after Close is intentional, but hiding the
+        // window leaves no visible trace and reads as a crash. Minimise so the
+        // window is still there in the Dock.
+        DispatchQueue.main.async { [weak self] in
+            guard let self, !self.window.isMiniaturized else { return }
+            self.window.miniaturize(nil)
+            self.log("main window minimised; harness keeps running")
+        }
         return false
     }
 
@@ -111,6 +118,10 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     }
 
     func applicationShouldHandleReopen(_ app: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !window.isVisible || window.isMiniaturized {
+            log("window restored from the Dock")
+        }
+        if window.isMiniaturized { window.deminiaturize(nil) }
         window.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
         return true
@@ -290,7 +301,12 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
 
         let winItem = NSMenuItem()
         let winMenu = NSMenu(title: "Window")
-        winMenu.addItem(withTitle: "Close", action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        let closeItem = winMenu.addItem(
+            withTitle: "Close",
+            action: #selector(NSWindow.performClose(_:)),
+            keyEquivalent: "w"
+        )
+        closeItem.toolTip = "Minimises the window to the Dock; the harness keeps running."
         winMenu.addItem(withTitle: "Minimize", action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
         winMenu.addItem(withTitle: "Zoom", action: #selector(NSWindow.performZoom(_:)), keyEquivalent: "")
         winItem.submenu = winMenu
