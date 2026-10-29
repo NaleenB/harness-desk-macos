@@ -26,6 +26,7 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
     private var checkAttachedAuth = false
     private var pricingBadge: PricingBadgeView?
     private var pricingTimer: Timer?
+    private var aboutWindow: AboutWindow?
 
     private let fm = FileManager.default
 
@@ -36,6 +37,11 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
             ?? (bundle.object(forInfoDictionaryKey: "CFBundleName") as? String)
             ?? "Harness Desk"
     }()
+
+    private let appVersion: String =
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String) ?? "0.0.0"
+    private let appBuild: String =
+        (Bundle.main.object(forInfoDictionaryKey: "CFBundleVersion") as? String) ?? "1"
 
     /// Launcher port range; overridable for tests or a second instance.
     private var portRange: ClosedRange<Int> {
@@ -239,7 +245,20 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
 
         let appItem = NSMenuItem()
         let appMenu = NSMenu()
-        appMenu.addItem(withTitle: "About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        let aboutItem = NSMenuItem(
+            title: "About \(appName)",
+            action: #selector(showAbout),
+            keyEquivalent: ""
+        )
+        aboutItem.target = self
+        appMenu.addItem(aboutItem)
+        let updatesItem = NSMenuItem(
+            title: "Check for Updates…",
+            action: #selector(checkForUpdates),
+            keyEquivalent: ""
+        )
+        updatesItem.target = self
+        appMenu.addItem(updatesItem)
         appMenu.addItem(.separator())
         appMenu.addItem(withTitle: "Hide \(appName)", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
         appMenu.addItem(withTitle: "Quit \(appName)", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
@@ -278,6 +297,22 @@ final class Launcher: NSObject, NSApplicationDelegate, WKNavigationDelegate, WKU
         main.addItem(winItem)
 
         NSApp.mainMenu = main
+    }
+
+    @objc private func showAbout() {
+        if aboutWindow == nil {
+            aboutWindow = AboutWindow(
+                appName: appName,
+                version: appVersion,
+                build: appBuild,
+                dshPath: { [weak self] in self?.resolveDSH() }
+            )
+        }
+        aboutWindow?.show()
+    }
+
+    @objc private func checkForUpdates() {
+        showAbout()
     }
 
     private func status(_ text: String) {

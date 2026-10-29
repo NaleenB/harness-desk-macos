@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.1.5 — 2026-10-29
+
+- Add an About window (App menu → About Harness Desk, or Check for Updates…).
+  It shows the installed Harness Desk and DeepSeek Harness versions, checks the
+  npm `latest` tag and the latest GitHub release on demand, lists the `next` and
+  `alpha` pre-release channels, and copies the update command. Nothing is
+  checked in the background and nothing installs itself.
+- Version ordering follows semver, so `0.2.1-rc.4` sorts above `0.2.1-rc.2` and
+  below `0.2.2-alpha.2`; covered by the unit tests.
+
 ## 0.1.4 — 2026-10-27
 
 - Fix the pricing tooltip appearing only over part of the badge, or being

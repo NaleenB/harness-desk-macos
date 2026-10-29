@@ -13,7 +13,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_NAME="${APP_NAME:-HarnessDesk}"
 DISPLAY_NAME="${DISPLAY_NAME:-Harness Desk}"
 BUNDLE_ID="${BUNDLE_ID:-dev.naleen.harnessdesk}"
-VERSION="${VERSION:-0.1.4}"
+VERSION="${VERSION:-0.1.5}"
 BUILD_NUMBER="${BUILD_NUMBER:-1}"
 INSTALL_DIR="${INSTALL_DIR:-/Applications}"
 BUILD_DIR="$ROOT/build"
@@ -31,7 +31,8 @@ mkdir -p "$BUILD_DIR"
 echo "Compiling $APP_NAME…"
 swiftc -O -swift-version 5 -target arm64-apple-macos13.0 \
   -framework Cocoa -framework WebKit \
-  -o "$BUILD_DIR/$APP_NAME" "$ROOT/Sources/main.swift" "$ROOT/Sources/Pricing.swift" "$ROOT/Sources/TokenURL.swift"
+  -o "$BUILD_DIR/$APP_NAME" "$ROOT/Sources/main.swift" "$ROOT/Sources/Pricing.swift" "$ROOT/Sources/TokenURL.swift" \
+  "$ROOT/Sources/Updates.swift" "$ROOT/Sources/AboutWindow.swift"
 
 rm -rf "$APP"
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"

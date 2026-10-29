@@ -80,9 +80,67 @@ for (startISO, endISO, expected) in transitionCases {
     }
 }
 
+let versionCases: [(String, String, ComparisonResult)] = [
+    ("0.1.4", "0.1.4", .orderedSame),
+    ("v0.1.4", "0.1.4", .orderedSame),
+    ("0.1.10", "0.1.9", .orderedDescending),
+    ("1.0", "1.0.0", .orderedSame),
+    ("0.2.1-rc.2", "0.2.1-rc.4", .orderedAscending),
+    ("0.2.1-rc.4", "0.2.1-rc.2", .orderedDescending),
+    ("0.2.1", "0.2.1-rc.4", .orderedDescending),
+    ("0.2.2-alpha.2", "0.2.1-rc.4", .orderedDescending),
+    ("0.2.1+build.5", "0.2.1", .orderedSame),
+    ("0.2.1-rc.10", "0.2.1-rc.9", .orderedDescending),
+    ("1.0.0-alpha.1", "1.0.0-alpha.beta", .orderedAscending),
+    ("1.0.0-beta.11", "1.0.0-beta.2", .orderedDescending),
+]
+for (left, right, expected) in versionCases {
+    let actual = VersionOrder.compare(left, right)
+    if actual != expected {
+        print("FAIL version \(left) vs \(right): expected \(expected.rawValue), got \(actual.rawValue)")
+        failures += 1
+    }
+}
+if VersionOrder.isNewer("0.2.1-rc.4", than: "0.2.1-rc.2") != true {
+    print("FAIL isNewer forward")
+    failures += 1
+}
+if VersionOrder.isNewer("0.2.1-rc.2", than: "0.2.1-rc.4") != false {
+    print("FAIL isNewer backward")
+    failures += 1
+}
+
+let tagCases: [(String, [String: String]?)] = [
+    ("{\"latest\":\"0.2.1-rc.2\",\"next\":\"0.2.1-rc.4\"}", ["latest": "0.2.1-rc.2", "next": "0.2.1-rc.4"]),
+    ("{\"next\":\"0.2.1-rc.4\"}", nil),
+    ("[]", nil),
+]
+for (json, expected) in tagCases {
+    let parsed = try? UpdateFeed.parseDistTags(Data(json.utf8))
+    if parsed != expected {
+        print("FAIL dist-tags \(json): got \(String(describing: parsed))")
+        failures += 1
+    }
+}
+
+let releaseCases: [(String, String?)] = [
+    ("{\"tag_name\":\"v0.1.4\"}", "0.1.4"),
+    ("{\"tag_name\":\"0.1.4\"}", "0.1.4"),
+    ("{\"name\":\"no tag\"}", nil),
+    ("not json", nil),
+]
+for (json, expected) in releaseCases {
+    let parsed = try? UpdateFeed.parseLatestReleaseTag(Data(json.utf8))
+    if parsed != expected {
+        print("FAIL release tag \(json): got \(String(describing: parsed))")
+        failures += 1
+    }
+}
+
 if failures == 0 {
     print("pricing: \(cases.count) boundary cases passed")
     print("transitions: \(transitionCases.count) cases passed")
     print("token URL: \(tokenCases.count) cases passed")
+    print("versions: \(versionCases.count) cases passed")
 }
 exit(failures == 0 ? 0 : 1)

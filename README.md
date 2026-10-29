@@ -40,6 +40,11 @@ small and does only that.
 - A subtle title-bar pricing indicator (Peak/Normal) based on the UTC weekday
   windows and the current system timezone; hover for the schedule, local time,
   and a countdown to the end of the current period.
+- **About Harness Desk** (App menu, or **Check for Updates…**) shows the
+  installed Harness Desk and DeepSeek Harness versions, checks the npm `latest`
+  tag and the latest GitHub release on demand, lists the `next` and `alpha`
+  pre-release channels, and copies the update command. It only makes those two
+  requests while the window is open, and it never installs anything itself.
 
 ## Requirements
 
@@ -64,8 +69,8 @@ open "/Applications/HarnessDesk.app"
 ```
 
 `--install` is optional; without it the app is built at
-`build/HarnessDesk.app` and not copied anywhere. The pure pricing-rule tests run
-with `./scripts/test.sh`.
+`build/HarnessDesk.app` and not copied anywhere. The unit tests (pricing
+windows, version ordering, token parsing) run with `./scripts/test.sh`.
 
 The build script uses `swiftc`, writes the bundle, injects the app identity into
 `Resources/Info.plist.in`, ad-hoc signs the result, and copies it to
@@ -115,7 +120,9 @@ builds; the repository default is a neutral icon).
 Harness Desk runs with your user privileges and starts `dsh`, which can execute
 commands and read `~/.dsh` (credentials, sessions). Treat it as trusted local
 code, build it from source, and read the code before running it. It has no
-telemetry and makes no network connections of its own.
+telemetry. Its only network requests are the two update checks behind **About
+Harness Desk** (npm registry and GitHub), which run only while that window is
+open.
 
 The launch token is a live credential for the running server. It is written to
 `~/.dsh/web-ui-url.txt` with mode `0600`, and the launcher log redacts it. The
@@ -132,8 +139,10 @@ the hardened runtime, and notarization. See [SECURITY.md](SECURITY.md).
 - The startup URL is parsed from the `dsh web:` stdout line. An upstream change
   to that line will make the launcher retry and eventually show an alert until
   it is updated.
-- No auto-update, preferences window, native file dialogs, downloads,
-  notifications, or multi-window support.
+- No auto-update: the About window reports newer versions and copies the
+  command to install them, but nothing updates itself.
+- No preferences window, native file dialogs, downloads, notifications, or
+  multi-window support.
 - Attaching to a server the app did not start means `⌘Q` leaves that server
   running. Stop it with `pkill -f "dsh web"` if needed.
 - Rebuilding changes the ad-hoc signature; macOS may ask for microphone access
